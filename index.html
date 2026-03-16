@@ -52,6 +52,25 @@ const map = new mapboxgl.Map({
   zoom: 13
 });
 
+  map.on('load', () => {
+
+  map.addSource('india-border', {
+    type: 'geojson',
+    data: 'india_border_indian_claim.geojson'
+  });
+
+  map.addLayer({
+    id: 'india-border',
+    type: 'line',
+    source: 'india-border',
+    paint: {
+      'line-color': '#FF9933',
+      'line-width': 3
+    }
+  });
+
+});
+
 const instructionBox = document.getElementById("instructions");
 
 document.getElementById("routeBtn").onclick = async function() {
