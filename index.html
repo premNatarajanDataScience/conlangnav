@@ -49,12 +49,11 @@ mapboxgl.accessToken = 'pk.eyJ1IjoibGFuZ21hcCIsImEiOiJjbWxzaXRta3MwN21vM2ZzNzMya
 const map = new mapboxgl.Map({
   container: 'map',
   style: 'mapbox://styles/mapbox/streets-v12',
-  center: [-122.4194, 37.7749], // default center
+  center: [-122.4194, 37.7749],
   zoom: 13
 });
 
-  map.on('load', () => {
-
+map.on('load', () => {
   map.addSource('india-border', {
     type: 'geojson',
     data: 'india_official_border.json'
@@ -69,7 +68,6 @@ const map = new mapboxgl.Map({
       'line-width': 3
     }
   });
-
 });
 
 const instructionBox = document.getElementById("instructions");
@@ -84,85 +82,66 @@ document.getElementById("routeBtn").onclick = async function() {
     if (window.startMarker) window.startMarker.remove();
     if (window.endMarker) window.endMarker.remove();
 
-    // Parse coordinates
     const startCoords = start.split(",").map(Number);
     const endCoords = end.split(",").map(Number);
 
-// Start marker
     window.startMarker = new mapboxgl.Marker({ color: "blue" })
-   .setLngLat(startCoords)
-   .addTo(map);
+      .setLngLat(startCoords)
+      .addTo(map);
 
-// End marker
-   window.endMarker = new mapboxgl.Marker({ color: "red" })
-   .setLngLat(endCoords)
-   .addTo(map);
-
-
-
-
+    window.endMarker = new mapboxgl.Marker({ color: "red" })
+      .setLngLat(endCoords)
+      .addTo(map);
 
     const response = await fetch(
-  `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${start};${end}?steps=true&geometries=polyline6&overview=full&access_token=${mapboxgl.accessToken}`
-);
-    
+      `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${start};${end}?steps=true&geometries=polyline6&overview=full&access_token=${mapboxgl.accessToken}`
+    );
 
     const data = await response.json();
-console.log(data);
 
-// SAFETY CHECK HERE
-if (!data.routes || data.routes.length === 0) {
-  alert("No route found.");
-  return;
-}
+    if (!data.routes || data.routes.length === 0) {
+      alert("No route found.");
+      return;
+    }
 
-const route = data.routes[0];
+    const route = data.routes[0];
     const coords = polyline.decode(route.geometry, 6).map(c => [c[1], c[0]]);
 
+    const bounds = new mapboxgl.LngLatBounds();
+    coords.forEach(coord => bounds.extend(coord));
+    map.fitBounds(bounds, { padding: 50 });
 
-// Create bounds
-const bounds = new mapboxgl.LngLatBounds();
-
-// Extend bounds with route coordinates
-coords.forEach(coord => {
-  bounds.extend(coord);
-});
-
-// Zoom map to fit route
-map.fitBounds(bounds, { padding: 50 });
-
-
-    // Remove old route if it exists
-    if (map.getSource("route")) {
+    // ✅ FIXED SAFE REMOVAL
+    if (map.getLayer("route")) {
       map.removeLayer("route");
+    }
+    if (map.getSource("route")) {
       map.removeSource("route");
     }
 
-    // Draw route line
     map.addSource("route", {
-  type: "geojson",
-  data: {
-    type: "Feature",
-    geometry: {
-      type: "LineString",
-      coordinates: coords
-    }
-  }
-});
+      type: "geojson",
+      data: {
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: coords
+        }
+      }
+    });
 
     map.addLayer({
       id: "route",
       type: "line",
       source: "route",
       paint: {
-  "line-color": "#007AFF",
-  "line-width": 7,
-  "line-cap": "round",
-  "line-join": "round"
-}
+        "line-color": "#007AFF",
+        "line-width": 7,
+        "line-cap": "round",
+        "line-join": "round"
+      }
     });
 
-    // Clear previous instructions
     instructionBox.innerHTML = "";
 
     const steps = route.legs.flatMap(leg => leg.steps);
@@ -170,62 +149,62 @@ map.fitBounds(bounds, { padding: 50 });
 
     steps.forEach((step, index) => {
 
-  const type = step.maneuver.type;
-  const modifier = step.maneuver.modifier || "";
-  let distance;
+      const type = step.maneuver.type;
+      const modifier = step.maneuver.modifier || "";
 
-if (step.distance > 1000) {
-  distance = (step.distance / 1000).toFixed(1) + " kilometers";
-} else {
-  distance = Math.round(step.distance) + " meters";
-}
+      let distance;
+      if (step.distance > 1000) {
+        distance = (step.distance / 1000).toFixed(1) + " kilometers";
+      } else {
+        distance = Math.round(step.distance) + " meters";
+      }
 
-  let sentence = "";
+      let sentence = "";
 
-  if (type === "depart") {
-    sentence = "Depart";
-  }
+      if (type === "depart") {
+        const road = (step.name || "the road").split(";")[0].trim();
+        sentence = `Start on ${road}.`;
+      }
 
-  else if (type === "arrive" && index === lastStepIndex) {
-    sentence = "You have arrived";
-  }
+      else if (type === "arrive" && index === lastStepIndex) {
+        sentence = "You’ve arrived at your destination.";
+      }
 
-   else if (type === "turn") {
-    const road = (step.name || "the road").split(";")[0].trim();
-  
-    if (modifier === "left") {
-    sentence = `In ${distance}, turn left onto ${road}.`;
-  } else if (modifier === "right") {
-    sentence = `In ${distance}, turn right onto ${road}.`;
-  } else {
-    sentence = `In ${distance}, turn onto ${road}.`;
-  }
-}
-     
-else if (type === "continue" || type === "new name") {
-  const road = (step.name || "the road").split(";")[0].trim();
-  sentence = `Continue on ${road} for ${distance}.`;
-}
+      else if (type === "turn") {
+        const road = (step.name || "the road").split(";")[0].trim();
 
-else if (type === "merge") {
-  const road = (step.name || "the road").split(";")[0].trim();
-  sentence = `Merge onto ${road} in ${distance}.`;
-}
+        if (modifier === "left") {
+          sentence = `In ${distance}, turn left onto ${road}.`;
+        } else if (modifier === "right") {
+          sentence = `In ${distance}, turn right onto ${road}.`;
+        } else {
+          sentence = `In ${distance}, turn onto ${road}.`;
+        }
+      }
 
-else if (type === "roundabout") {
-  sentence = `Enter the roundabout and continue for ${distance}.`;
-}
+      else if (type === "continue" || type === "new name") {
+        const road = (step.name || "the road").split(";")[0].trim();
+        sentence = `Continue on ${road} for ${distance}.`;
+      }
 
-else {
-  const road = (step.name || "the road").split(";")[0].trim();
-  sentence = `Continue on ${road} for ${distance}.`;
-}
+      else if (type === "merge") {
+        const road = (step.name || "the road").split(";")[0].trim();
+        sentence = `In ${distance}, merge onto ${road}.`;
+      }
 
-  const p = document.createElement("p");
-  p.textContent = sentence;
-  instructionBox.appendChild(p);
-});
+      else if (type === "roundabout") {
+        sentence = `Enter the roundabout and continue for ${distance}.`;
+      }
 
+      else {
+        const road = (step.name || "the road").split(";")[0].trim();
+        sentence = `Continue on ${road} for ${distance}.`;
+      }
+
+      const p = document.createElement("p");
+      p.textContent = sentence;
+      instructionBox.appendChild(p);
+    });
 
   });
 };
