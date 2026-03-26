@@ -190,25 +190,35 @@ if (step.distance > 1000) {
     sentence = "You have arrived";
   }
 
-  else if (type === "turn") {
-  const road = step.name || "the road";
+ else if (type === "turn") {
+  const road = (step.name || "the road").split(";")[0].trim();
 
   if (modifier === "left") {
-    sentence = `Turn left onto ${road} in ${distance}.`;
-  } else if (modifier === "right") {
-    sentence = `Turn right onto ${road} in ${distance}.`;
-  } else {
-    sentence = `Turn onto ${road} in ${distance}.`;
-  }
+  sentence = `In ${distance}, turn left onto ${road}.`;
+} else if (modifier === "right") {
+  sentence = `In ${distance}, turn right onto ${road}.`;
+} else {
+  sentence = `In ${distance}, turn onto ${road}.`;
 }
 
-  else if (type === "continue") {
-    sentence = `Continue straight for ${distance}.`;
-  }
+else if (type === "continue" || type === "new name") {
+  const road = (step.name || "the road").split(";")[0].trim();
+  sentence = `Continue on ${road} for ${distance}.`;
+}
 
-  else {
-    sentence = `Continue for ${distance}.`;
-  }
+else if (type === "merge") {
+  const road = (step.name || "the road").split(";")[0].trim();
+  sentence = `Merge onto ${road} in ${distance}.`;
+}
+
+else if (type === "roundabout") {
+  sentence = `Enter the roundabout and continue for ${distance}.`;
+}
+
+else {
+  const road = (step.name || "the road").split(";")[0].trim();
+  sentence = `Continue on ${road} for ${distance}.`;
+}
 
   const p = document.createElement("p");
   p.textContent = sentence;
