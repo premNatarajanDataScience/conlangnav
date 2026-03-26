@@ -191,14 +191,16 @@ if (step.distance > 1000) {
   }
 
   else if (type === "turn") {
-    if (modifier === "left") {
-      sentence = `Turn left in ${distance}.`;
-    } else if (modifier === "right") {
-      sentence = `Turn right in ${distance}.`;
-    } else {
-      sentence = `Turn in ${distance} meters`;
-    }
+  const road = step.name || "the road";
+
+  if (modifier === "left") {
+    sentence = `Turn left onto ${road} in ${distance}.`;
+  } else if (modifier === "right") {
+    sentence = `Turn right onto ${road} in ${distance}.`;
+  } else {
+    sentence = `Turn onto ${road} in ${distance}.`;
   }
+}
 
   else if (type === "continue") {
     sentence = `Continue straight for ${distance}.`;
