@@ -111,35 +111,44 @@ document.getElementById("routeBtn").onclick = async function() {
     coords.forEach(coord => bounds.extend(coord));
     map.fitBounds(bounds, { padding: 50 });
 
-    // ✅ FIXED SAFE REMOVAL
-    if (map.getLayer("route")) {
-      map.removeLayer("route");
-    }
-    if (map.getSource("route")) {
-      map.removeSource("route");
+    // ✅ BULLETPROOF CLEANUP
+    try {
+      if (map.getLayer("route")) {
+        map.removeLayer("route");
+      }
+      if (map.getSource("route")) {
+        map.removeSource("route");
+      }
+    } catch (e) {
+      console.log("Cleanup error:", e);
     }
 
-    map.addSource("route", {
-      type: "geojson",
-      data: {
-        type: "Feature",
-        geometry: {
-          type: "LineString",
-          coordinates: coords
+    // ✅ SAFE ADD (prevents timing bugs)
+    map.once('idle', () => {
+
+      map.addSource("route", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: coords
+          }
         }
-      }
-    });
+      });
 
-    map.addLayer({
-      id: "route",
-      type: "line",
-      source: "route",
-      paint: {
-        "line-color": "#007AFF",
-        "line-width": 7,
-        "line-cap": "round",
-        "line-join": "round"
-      }
+      map.addLayer({
+        id: "route",
+        type: "line",
+        source: "route",
+        paint: {
+          "line-color": "#007AFF",
+          "line-width": 7,
+          "line-cap": "round",
+          "line-join": "round"
+        }
+      });
+
     });
 
     instructionBox.innerHTML = "";
@@ -162,12 +171,11 @@ document.getElementById("routeBtn").onclick = async function() {
       let sentence = "";
 
       if (type === "depart") {
-        const road = (step.name || "the road").split(";")[0].trim();
-        sentence = `Start on ${road}.`;
+        sentence = "Depart";
       }
 
       else if (type === "arrive" && index === lastStepIndex) {
-        sentence = "You’ve arrived at your destination.";
+        sentence = "You have arrived";
       }
 
       else if (type === "turn") {
@@ -189,7 +197,7 @@ document.getElementById("routeBtn").onclick = async function() {
 
       else if (type === "merge") {
         const road = (step.name || "the road").split(";")[0].trim();
-        sentence = `In ${distance}, merge onto ${road}.`;
+        sentence = `Merge onto ${road} in ${distance}.`;
       }
 
       else if (type === "roundabout") {
