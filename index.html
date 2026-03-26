@@ -190,17 +190,18 @@ if (step.distance > 1000) {
     sentence = "You have arrived";
   }
 
- else if (type === "turn") {
-  const road = (step.name || "the road").split(";")[0].trim();
-
-  if (modifier === "left") {
-  sentence = `In ${distance}, turn left onto ${road}.`;
-} else if (modifier === "right") {
-  sentence = `In ${distance}, turn right onto ${road}.`;
-} else {
-  sentence = `In ${distance}, turn onto ${road}.`;
+   else if (type === "turn") {
+    const road = (step.name || "the road").split(";")[0].trim();
+  
+    if (modifier === "left") {
+    sentence = `In ${distance}, turn left onto ${road}.`;
+  } else if (modifier === "right") {
+    sentence = `In ${distance}, turn right onto ${road}.`;
+  } else {
+    sentence = `In ${distance}, turn onto ${road}.`;
+  }
 }
-
+     
 else if (type === "continue" || type === "new name") {
   const road = (step.name || "the road").split(";")[0].trim();
   sentence = `Continue on ${road} for ${distance}.`;
