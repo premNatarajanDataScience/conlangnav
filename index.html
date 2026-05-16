@@ -7,6 +7,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+
+<link
+  rel="stylesheet"
+  href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css"
+  type="text/css"
+/>
 <script src="https://unpkg.com/@mapbox/polyline"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet"/>
 
@@ -52,6 +59,19 @@ const map = new mapboxgl.Map({
   center: [-122.4194, 37.7749],
   zoom: 13
 });
+  const geocoder = new MapboxGeocoder({
+  accessToken: mapboxgl.accessToken,
+  mapboxgl: mapboxgl,
+  marker: true,
+  placeholder: "Search destination..."
+});
+
+map.addControl(geocoder);
+  let destinationCoords = null;
+
+geocoder.on("result", (e) => {
+  destinationCoords = e.result.center;
+});
 
 map.on('load', () => {
   map.addSource('india-border', {
@@ -77,7 +97,12 @@ document.getElementById("routeBtn").onclick = async function() {
   navigator.geolocation.getCurrentPosition(async (position) => {
 
     const start = `${position.coords.longitude},${position.coords.latitude}`;
-    const end = `${position.coords.longitude + 0.01},${position.coords.latitude + 0.01}`;
+    if (!destinationCoords) {
+  alert("Please search for a destination first.");
+  return;
+}
+
+const end = `${destinationCoords[0]},${destinationCoords[1]}`;
 
     if (window.startMarker) window.startMarker.remove();
     if (window.endMarker) window.endMarker.remove();
